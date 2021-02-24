@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Spreadbase</title>
+</head>
+
+<body>
+    <div id="viewport" style="background-color: red; width: 500px; overflow: scroll;" onscroll="scrolling()">
+        <div id="canvas" style="width: 500px; position: relative;">
+        </div>
+    </div>
+</body>
+
+<script>
+    const viewportHeight = 500;
+    const rowHeight = 20;
+    const rowWidth = '500px';
+    const rowCount = 894000;
+    const rowsVisible = viewportHeight / rowHeight;
+    const rowBufferCount = 2;
+    let rowsVisibleIndexes = [];
+
+    const viewport = document.getElementById('viewport');
+    viewport.style.height = `${viewportHeight}px`;
+    const canvas = document.getElementById('canvas');
+    canvas.style.height = `${rowCount * rowHeight}px`;
+    // Call once to add first visible rows
+    scrolling();
+
+    function scrolling() {
+        const top = viewport.scrollTop;
+        const left = viewport.scrollLeft;
+
+        const firstIndexVisible = Math.ceil(top / rowHeight);
+        console.log(firstIndexVisible);
+        const lastIndexVisible = firstIndexVisible + rowsVisible;
+        for (let i = firstIndexVisible; i < lastIndexVisible; i++) {
+            if (i > rowCount) {
+                return;
+            }
+            addRow(i);
+        }
+        const rowsRemoved = [];
+        rowsVisibleIndexes.forEach(index => {
+            if (index < (firstIndexVisible - rowBufferCount) || index > (lastIndexVisible + rowBufferCount)) {
+                removeRow(index);
+                rowsRemoved.push(index);
+            }
+        });
+        const f = rowsVisibleIndexes.filter(function (value, index, rowsVisibleIndexes) {
+            return !rowsRemoved.includes(value);
+        });
+        rowsVisibleIndexes = f;
+    }
+
+    function addRow(index) {
+        if (rowsVisibleIndexes.includes(index)) {
+            return;
+        }
+        console.log(`Adding row ${index}`);
+        const rowElement = document.createElement('div');
+        rowElement.id = index;
+        rowElement.style.position = 'absolute';
+        rowElement.style.backgroundColor = 'white';
+        rowElement.style.width = rowWidth;
+        rowElement.style.height = `${rowHeight}px`;
+        rowElement.style.top = `${index * rowHeight}px`;
+        rowElement.textContent = index;
+        canvas.appendChild(rowElement);
+        rowsVisibleIndexes.push(index);
+    }
+
+    function removeRow(index) {
+        console.log(`Removing row ${index}`);
+        const rowElement = document.getElementById(index);
+        rowElement.remove();
+    }
+</script>
+
+</html>
