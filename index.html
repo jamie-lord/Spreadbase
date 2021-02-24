@@ -5,76 +5,144 @@
     <title>Spreadbase</title>
 </head>
 
+<style>
+    #viewport {
+        float: left;
+        border: 1px solid black;
+        overflow: auto;
+        width: 350px;
+    }
+
+    #content {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .row {
+        position: absolute;
+        left: 0px;
+        width: 100%;
+        border-bottom: 1px dotted blue;
+        font-size: 9pt;
+    }
+
+    .row:hover {
+        background: rgba(0, 0, 255, 0.05);
+    }
+</style>
+
 <body>
-    <div id="viewport" style="background-color: red; width: 500px; overflow: scroll;" onscroll="scrolling()">
-        <div id="canvas" style="width: 500px; position: relative;">
-        </div>
+    <div id="viewport">
+        <div id="content"></div>
     </div>
 </body>
 
 <script>
-    const viewportHeight = 500;
-    const rowHeight = 20;
-    const rowWidth = '500px';
-    const rowCount = 894000;
-    const rowsVisible = viewportHeight / rowHeight;
-    const rowBufferCount = 2;
-    let rowsVisibleIndexes = [];
+    const itemCount = 1000000000;
+    const rowHeight = 50;
+    const virtualHeight = rowHeight * itemCount;
+    const scrollableHeight = 1000000;
+    const pageHeight = scrollableHeight / 100;
+    const numberOfPages = Math.ceil(virtualHeight / pageHeight);
+    const viewportHeight = 400;
+    const jumpinessCoefficient = (virtualHeight - scrollableHeight) / (numberOfPages - 1);
 
-    const viewport = document.getElementById('viewport');
+    let page = 0;
+    let pageOffset = 0;
+    let prevScrollTop = 0;
+
+    let rows = {};
+
+    const viewport = document.getElementById("viewport");
+    const content = document.getElementById("content");
+
     viewport.style.height = `${viewportHeight}px`;
-    const canvas = document.getElementById('canvas');
-    canvas.style.height = `${rowCount * rowHeight}px`;
-    // Call once to add first visible rows
-    scrolling();
+    content.style.height = `${scrollableHeight}px`;
 
-    function scrolling() {
-        const top = viewport.scrollTop;
-        const left = viewport.scrollLeft;
+    viewport.addEventListener("scroll", onScroll);
 
-        const firstIndexVisible = Math.ceil(top / rowHeight);
-        console.log(firstIndexVisible);
-        const lastIndexVisible = firstIndexVisible + rowsVisible;
-        for (let i = firstIndexVisible; i < lastIndexVisible; i++) {
-            if (i > rowCount) {
-                return;
-            }
-            addRow(i);
+    onScroll();
+
+    function onScroll() {
+        const scrollTop = viewport.scrollTop;
+
+        if (Math.abs(scrollTop - prevScrollTop) > viewportHeight) {
+            onJump();
         }
-        const rowsRemoved = [];
-        rowsVisibleIndexes.forEach(index => {
-            if (index < (firstIndexVisible - rowBufferCount) || index > (lastIndexVisible + rowBufferCount)) {
-                removeRow(index);
-                rowsRemoved.push(index);
-            }
-        });
-        const f = rowsVisibleIndexes.filter(function (value, index, rowsVisibleIndexes) {
-            return !rowsRemoved.includes(value);
-        });
-        rowsVisibleIndexes = f;
+        else {
+            onNearScroll();
+        }
+
+        renderViewport();
     }
 
-    function addRow(index) {
-        if (rowsVisibleIndexes.includes(index)) {
-            return;
+    function onNearScroll() {
+        const scrollTop = viewport.scrollTop;
+
+        // next page
+        if (scrollTop + pageOffset > (page + 1) * pageHeight) {
+            page++;
+            pageOffset = Math.round(page * jumpinessCoefficient);
+            viewport.scrollTop(prevScrollTop = scrollTop - jumpinessCoefficient);
+            removeAllRows();
         }
-        console.log(`Adding row ${index}`);
-        const rowElement = document.createElement('div');
-        rowElement.id = index;
-        rowElement.style.position = 'absolute';
-        rowElement.style.backgroundColor = 'white';
-        rowElement.style.width = rowWidth;
-        rowElement.style.height = `${rowHeight}px`;
-        rowElement.style.top = `${index * rowHeight}px`;
-        rowElement.textContent = index;
-        canvas.appendChild(rowElement);
-        rowsVisibleIndexes.push(index);
+        // prev page
+        else if (scrollTop + pageOffset < page * pageHeight) {
+            page--;
+            pageOffset = Math.round(page * jumpinessCoefficient);
+            viewport.scrollTop(prevScrollTop = scrollTop + jumpinessCoefficient);
+            removeAllRows();
+        }
+        else {
+            prevScrollTop = scrollTop;
+        }
     }
 
-    function removeRow(index) {
-        console.log(`Removing row ${index}`);
-        const rowElement = document.getElementById(index);
-        rowElement.remove();
+    function onJump() {
+        const scrollTop = viewport.scrollTop;
+        page = Math.floor(scrollTop * ((virtualHeight - viewportHeight) / (scrollableHeight - viewportHeight)) * (1 / pageHeight));
+        pageOffset = Math.round(page * jumpinessCoefficient);
+        prevScrollTop = scrollTop;
+
+        removeAllRows();
+    }
+
+    function removeAllRows() {
+        for (var i in rows) {
+            rows[i].remove();
+            delete rows[i];
+        }
+    }
+
+    function renderViewport() {
+        // calculate the viewport + buffer
+        const y = viewport.scrollTop + pageOffset;
+        const buffer = viewportHeight;
+        const top = Math.max(0, Math.floor((y - buffer) / rowHeight));
+        const bottom = Math.min(virtualHeight / rowHeight, Math.ceil((y + viewportHeight + buffer) / rowHeight));
+
+        // remove rows no longer in the viewport
+        for (var i in rows) {
+            if (i < top || i > bottom) {
+                rows[i].remove();
+                delete rows[i];
+            }
+        }
+
+        // add new rows
+        for (var i = top; i <= bottom; i++) {
+            if (!rows[i])
+                rows[i] = renderRow(i);
+        }
+    }
+
+    function renderRow(row) {
+        const rowElement = document.createElement("div");
+        rowElement.className = "row";
+        rowElement.style.cssText = `top: ${row * rowHeight - pageOffset}px; height: ${rowHeight}px;`;
+        rowElement.innerText = "row " + (row);
+        content.append(rowElement);
+        return rowElement;
     }
 </script>
 
