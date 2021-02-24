@@ -83,14 +83,14 @@
         if (scrollTop + pageOffset > (page + 1) * pageHeight) {
             page++;
             pageOffset = Math.round(page * jumpinessCoefficient);
-            viewport.scrollTop(prevScrollTop = scrollTop - jumpinessCoefficient);
+            prevScrollTop = scrollTop - jumpinessCoefficient;
             removeAllRows();
         }
         // prev page
         else if (scrollTop + pageOffset < page * pageHeight) {
             page--;
             pageOffset = Math.round(page * jumpinessCoefficient);
-            viewport.scrollTop(prevScrollTop = scrollTop + jumpinessCoefficient);
+            prevScrollTop = scrollTop + jumpinessCoefficient;
             removeAllRows();
         }
         else {
