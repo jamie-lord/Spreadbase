@@ -6,143 +6,100 @@
 </head>
 
 <style>
-    #viewport {
-        float: left;
+    td {
         border: 1px solid black;
-        overflow: auto;
-        width: 350px;
-    }
-
-    #content {
-        position: relative;
-        overflow: hidden;
-    }
-
-    .row {
-        position: absolute;
-        left: 0px;
-        width: 100%;
-        border-bottom: 1px dotted blue;
-        font-size: 9pt;
-    }
-
-    .row:hover {
-        background: rgba(0, 0, 255, 0.05);
     }
 </style>
 
 <body>
-    <div id="viewport">
-        <div id="content"></div>
+    <div style="display: grid;">
+        <table id="table" style="table-layout: fixed; grid-row: 1; grid-column: 1;">
+            <thead>
+                <tr id="thead-row"></tr>
+            </thead>
+            <tbody id="tbody">
+            </tbody>
+        </table>
+        <input type="range" min="0" max="100" value="0" id="row-slider" oninput="rowSliderChanged()"
+            style="grid-row: 1; grid-column: 2; -webkit-appearance: slider-vertical; transform: rotate(180deg);"
+            orient="vertical">
+
+        <input type="range" min="0" max="100" value="0" id="column-slider" oninput="columnSliderChanged()"
+            style="grid-row: 2; grid-column: 1;">
     </div>
 </body>
 
 <script>
-    const itemCount = 1000000000;
-    const rowHeight = 50;
-    const virtualHeight = rowHeight * itemCount;
-    const scrollableHeight = 1000000;
-    const pageHeight = scrollableHeight / 100;
-    const numberOfPages = Math.ceil(virtualHeight / pageHeight);
-    const viewportHeight = 400;
-    const jumpinessCoefficient = (virtualHeight - scrollableHeight) / (numberOfPages - 1);
+    const visibleRowCount = 20;
+    const visibleColumnCount = 10;
 
-    let page = 0;
-    let pageOffset = 0;
-    let prevScrollTop = 0;
+    const rowCount = 100;
+    const columnCount = 100;
+    let firstRow = 0;
+    let firstColumn = 0;
 
-    let rows = {};
+    const rowHeight = 20;
+    const columnWidth = 60;
+    let data = [];
 
-    const viewport = document.getElementById("viewport");
-    const content = document.getElementById("content");
+    const table = document.getElementById('table');
+    table.style.width = `${visibleColumnCount * columnWidth}px`;
 
-    viewport.style.height = `${viewportHeight}px`;
-    content.style.height = `${scrollableHeight}px`;
+    const tbody = document.getElementById('tbody');
 
-    viewport.addEventListener("scroll", onScroll);
+    const rowSlider = document.getElementById('row-slider');
+    rowSlider.style.height = `${visibleRowCount * rowHeight}px`;
+    rowSlider.max = (rowCount - visibleRowCount).toString();
 
-    onScroll();
+    const columnSlider = document.getElementById('column-slider');
+    columnSlider.style.height = `${visibleColumnCount * columnWidth}px`;
+    columnSlider.max = (columnCount - visibleColumnCount).toString();
 
-    function onScroll() {
-        const scrollTop = viewport.scrollTop;
+    rowSliderChanged();
+    columnSliderChanged();
+    generateData();
 
-        if (Math.abs(scrollTop - prevScrollTop) > viewportHeight) {
-            onJump();
-        }
-        else {
-            onNearScroll();
-        }
-
-        renderViewport();
-    }
-
-    function onNearScroll() {
-        const scrollTop = viewport.scrollTop;
-
-        // next page
-        if (scrollTop + pageOffset > (page + 1) * pageHeight) {
-            page++;
-            pageOffset = Math.round(page * jumpinessCoefficient);
-            prevScrollTop = scrollTop - jumpinessCoefficient;
-            removeAllRows();
-        }
-        // prev page
-        else if (scrollTop + pageOffset < page * pageHeight) {
-            page--;
-            pageOffset = Math.round(page * jumpinessCoefficient);
-            prevScrollTop = scrollTop + jumpinessCoefficient;
-            removeAllRows();
-        }
-        else {
-            prevScrollTop = scrollTop;
-        }
-    }
-
-    function onJump() {
-        const scrollTop = viewport.scrollTop;
-        page = Math.floor(scrollTop * ((virtualHeight - viewportHeight) / (scrollableHeight - viewportHeight)) * (1 / pageHeight));
-        pageOffset = Math.round(page * jumpinessCoefficient);
-        prevScrollTop = scrollTop;
-
-        removeAllRows();
-    }
-
-    function removeAllRows() {
-        for (var i in rows) {
-            rows[i].remove();
-            delete rows[i];
-        }
-    }
-
-    function renderViewport() {
-        // calculate the viewport + buffer
-        const y = viewport.scrollTop + pageOffset;
-        const buffer = viewportHeight;
-        const top = Math.max(0, Math.floor((y - buffer) / rowHeight));
-        const bottom = Math.min(virtualHeight / rowHeight, Math.ceil((y + viewportHeight + buffer) / rowHeight));
-
-        // remove rows no longer in the viewport
-        for (var i in rows) {
-            if (i < top || i > bottom) {
-                rows[i].remove();
-                delete rows[i];
+    function generateData() {
+        data = [];
+        for (let ir = 0; ir < visibleRowCount; ir++) {
+            let d = {};
+            for (let ic = 0; ic < visibleColumnCount; ic++) {
+                d[ic.toString()] = `r${(ir + firstRow).toString()}c${(ic + firstColumn).toString()}`;
             }
-        }
-
-        // add new rows
-        for (var i = top; i <= bottom; i++) {
-            if (!rows[i])
-                rows[i] = renderRow(i);
+            data.push(d);
         }
     }
 
-    function renderRow(row) {
-        const rowElement = document.createElement("div");
-        rowElement.className = "row";
-        rowElement.style.cssText = `top: ${row * rowHeight - pageOffset}px; height: ${rowHeight}px;`;
-        rowElement.innerText = "row " + (row);
-        content.append(rowElement);
-        return rowElement;
+    render();
+
+    function render() {
+        tbody.innerHTML = '';
+        data.forEach(row => {
+            const rowElement = document.createElement('tr');
+            rowElement.style.height = `${rowHeight}px`;
+            for (const property in row) {
+                const rowData = document.createElement('td');
+                rowData.style.width = `${columnWidth}px`;
+                rowData.style.overflow = 'hidden';
+                rowData.textContent = row[property];
+                rowElement.append(rowData);
+            }
+            tbody.append(rowElement);
+        });
+    }
+
+    function rowSliderChanged() {
+        const slider = document.getElementById('row-slider');
+        firstRow = parseInt(slider.value);
+        generateData();
+        render();
+    }
+
+    function columnSliderChanged() {
+        const slider = document.getElementById('column-slider');
+        firstColumn = parseInt(slider.value);
+        generateData();
+        render();
     }
 </script>
 
