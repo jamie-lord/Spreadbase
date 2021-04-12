@@ -33,13 +33,13 @@
     const visibleRowCount = 20;
     const visibleColumnCount = 10;
 
-    const rowCount = 100;
-    const columnCount = 100;
+    const rowCount = 10000000000;
+    const columnCount = 10000000000;
     let firstRow = 0;
     let firstColumn = 0;
 
     const rowHeight = 20;
-    const columnWidth = 60;
+    const columnWidth = 100;
     let data = [];
 
     const table = document.getElementById('table');
@@ -52,7 +52,7 @@
     rowSlider.max = (rowCount - visibleRowCount).toString();
 
     const columnSlider = document.getElementById('column-slider');
-    columnSlider.style.height = `${visibleColumnCount * columnWidth}px`;
+    columnSlider.style.width = `${visibleColumnCount * columnWidth}px`;
     columnSlider.max = (columnCount - visibleColumnCount).toString();
 
     rowSliderChanged();
@@ -64,7 +64,7 @@
         for (let ir = 0; ir < visibleRowCount; ir++) {
             let d = {};
             for (let ic = 0; ic < visibleColumnCount; ic++) {
-                d[ic.toString()] = `r${(ir + firstRow).toString()}c${(ic + firstColumn).toString()}`;
+                d[ic.toString()] = `${(ir + firstRow).toString()},${(ic + firstColumn).toString()}`;
             }
             data.push(d);
         }
